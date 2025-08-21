@@ -1,21 +1,31 @@
+# src/enumerator.py
 from __future__ import annotations
-from typing import Dict
+from typing import List, Dict, Set, Tuple
 from .engine import ReachabilityEngine
 
-
-def count_reachable(protocol: str, n: int, depth=10) -> int:
+def _run(protocol: str, n: int, max_depth: int = 10, parallel: bool = False, **kwargs):
     eng = ReachabilityEngine(protocol)
-    return eng.bfs(n, depth)["reachable_count"]
+    if parallel:
+        return eng.bfs_parallel(
+            n,
+            max_depth=max_depth,
+            workers=kwargs.get("workers", 4),
+            batch_size=kwargs.get("batch_size", 256),
+            verbose=kwargs.get("verbose", False),
+        )
+    else:
+        return eng.bfs(n, max_depth=max_depth)
 
+def count_reachable(protocol: str, n: int, max_depth: int = 10, parallel: bool = False, **kwargs) -> int:
+    """返回可达等价类总数（含深度0）。"""
+    return _run(protocol, n, max_depth, parallel, **kwargs)["reachable_count"]
 
-def table_counts(n_values=(2, 3, 4), depth=10):
-    tbl: Dict[int, Dict[str, int]] = {}
-    for n in n_values:
-        tbl[n] = {}
-        for proto in ["LNS", "CO", "SPI", "TOK", "ANY"]:
-            tbl[n][proto] = count_reachable(proto, n, depth)
-    return tbl
+def per_level_counts(protocol: str, n: int, max_depth: int = 10, parallel: bool = False, **kwargs) -> List[int]:
+    """返回每一层的状态数（从0层开始的连续列表）。"""
+    res = _run(protocol, n, max_depth, parallel, **kwargs)
+    layers = res.get("layers", {})
+    if not layers:
+        return [0]
+    dmax = max(layers.keys())
+    return [len(layers.get(d, set())) for d in range(0, dmax + 1)]
 
-
-if __name__ == "__main__":
-    print(table_counts())
