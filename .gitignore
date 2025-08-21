@@ -1,0 +1,13 @@
+
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
+runs/
+*.npy
+*.npz
+*.parquet
+*.pkl
+*.pickle
+*.log
